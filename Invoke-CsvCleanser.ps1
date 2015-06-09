@@ -1,67 +1,155 @@
-﻿function IsDate($object) {
-    [Boolean]($object -as [DateTime])
-}
+﻿function Invoke-CsvCleanser {
 
-function Invoke-CsvCleanser {
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName = $true)][Alias('FullName','Path')]
+        <#
+        [ValidateScript({
+            if(!(Test-Path -LiteralPath $_ -PathType Container))
+            {
+                throw "Input folder doesn't exist: $_"
+            }
+            $true
+        })]
+        #>
+        [ValidateNotNullOrEmpty()]
+        [string[]]$Files, # = (Get-Location -PSProvider FileSystem).Path,
 
-    
-  [CmdletBinding()]
-  Param(
-    [parameter(Mandatory=$true)]
-    [String]
-    $Path,
-    [switch]
-    $Nulls,
-    [switch]
-    $Milliseconds
-  )
+        <#
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({
+            if(!(Test-Path -LiteralPath $_ -PathType Container))
+            {
+                try
+                {
+                    New-Item -ItemType Directory -Path $_ -Force
+                }
+                catch
+                {
+                    throw "Can't create output folder: $_"
+                }
+            }
+            $true
+        })]
+        [ValidateNotNullOrEmpty()]
+        [string]$OutPath,
+        #>
 
-  BEGIN {
-    Write-Verbose "$($MyInvocation.MyCommand.Name)::Begin" 
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]$Encoding = 'Default',
 
-#    Write-Verbose $Path
-#    Write-Verbose $Nulls
-#    Write-Verbose $Milliseconds
+        [switch]$Nulls,
 
-  }
+        [switch]$Milliseconds,
+
+        [switch]$DoubleQuotes
+    )
+
+    BEGIN {
+        Write-Verbose "$($MyInvocation.MyCommand.Name)::Begin"
+
+        # Set default encoding
+        if($Encoding -eq 'Default') {
+            $FileEncoding = [System.Text.Encoding]::Default
+        }
+        # Try to set user-specified encoding
+        else {
+            try {
+                $FileEncoding = [System.Text.Encoding]::GetEncoding($Encoding)
+            }
+            catch {
+                throw "Not valid encoding: $Encoding"
+            }
+        }
+
+        Write-Verbose "Encoding: $FileEncoding"
+        Write-Verbose "Nulls: $Nulls"
+        Write-Verbose "Milliseconds: $Milliseconds"
+        Write-Verbose "DoubleQuotes: $DoubleQuotes"
+
+        $DQuotes = '"'
+        $Separator = ','
+        # http://stackoverflow.com/questions/15927291/how-to-split-a-string-by-comma-ignoring-comma-in-double-quotes
+        $SplitRegex = "$Separator(?=(?:[^$DQuotes]|$DQuotes[^$DQuotes]*$DQuotes)*$)"
+        # Regef to match NULL
+        $NullRegex = '^NULL$'
+        # Regex to match milliseconds: 23:00:00.000
+        $MillisecondsRegex = '(\d{2}:\d{2}:\d{2})(\.\d{3})'
+
+    } # BEGIN
 
   PROCESS {
-    Write-Verbose "$($MyInvocation.MyCommand.Name)::Process"
+        Write-Verbose "$($MyInvocation.MyCommand.Name)::Process"
 
-    # open the file
-    $data = Import-Csv $path
+        Foreach ($File In $Files) {
 
-    # process each row
-    $data | Foreach-Object { 
+            $InFile = New-Object -TypeName System.IO.StreamReader -ArgumentList (
+                #$_.FullName,
+                $File,
+                $FileEncoding
+            ) -ErrorAction Stop
 
-        # process each column
-        Foreach ($property in $_.PSObject.Properties) {
+            Write-Verbose 'Created INPUT StreamReader'
 
-            Write-Verbose ("Raw: {0}: {1}" -f $property.Name, $property.Value)
+            $tempFile = "$env:temp\TEMP-$(Get-Date -format 'yyyy-MM-dd hh-mm-ss').csv"
+            # $tempFile = (Join-Path -Path $OutPath -ChildPath $_.Name)
 
-            # if column contains 'NULL', replace it with ''
-            if ($Nulls -and ($property.Value -eq 'NULL')) {
+            $OutFile = New-Object -TypeName System.IO.StreamWriter -ArgumentList (
+                $tempFile,
+                $false,
+                $FileEncoding
+            ) -ErrorAction Stop
 
-                $property.Value = $property.Value -replace 'NULL', ''
-                Write-Debug ("-Nulls: {0}: {1}" -f $property.Name, $property.Value)
+            Write-Verbose 'Created OUTPUT StreamWriter'
 
-            }
+            Write-Verbose "Processing $File..."
+
+            while(($line = $InFile.ReadLine()) -ne $null) {
+
+                Write-Debug "Raw: $line"
+
+                $tmp = $line -split $SplitRegex | ForEach-Object {
+
+                    # Strip surrounding quotes
+                    if($DoubleQuotes) { $_ = $_.Trim($DQuotes) }
+
+                    # Strip NULL strings
+                    if($Nulls) { $_ = $_ -replace $NullRegex, '' }
+
+                    # Strip milliseconds
+                    if($Milliseconds) { $_ = $_ -replace $MillisecondsRegex, '$1' }
+
+                    # Output current object to pipeline
+                    $_
+
+                } # Foreach
+
+                Write-Debug "Clean: $($tmp -join $Separator)"
+
+                # Write line to the new CSV file
+                $OutFile.WriteLine($tmp -join $Separator)
+
+            } # While
+
+            Write-Verbose "Finished processing file: $($_.FullName)"
+            # Write-Verbose "Processed file is saved as: $($OutFile.BaseStream.Name)"
+
+            # Close open files and cleanup objects
+            $OutFile.Flush()
+            $OutFile.Close()
+            $OutFile.Dispose()
             
-            # if column contains a date/time value, remove milliseconds
-            elseif ( $Milliseconds -and (isDate($property.Value)) ) {
+            $InFile.Close()
+            $InFile.Dispose()
 
-                $property.Value = $property.Value -replace '.000', ''
+            # move and replace
+            Move-Item $tempFile $File -Force
 
-                Write-Debug ("-Milliseconds: {0}: {1}" -f $property.Name, $property.Value)
-            }
-        } 
+        } # Foreach
 
-    } 
-    
-    # save file
-    $data | Export-Csv -Path $Path -NoTypeInformation
-    
-  }
-  END { Write-Verbose "$($MyInvocation.MyCommand.Name)::End"}
+    } # PROCESS
+
+    END { Write-Verbose "$($MyInvocation.MyCommand.Name)::End"}
 
 }
