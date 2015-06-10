@@ -1,4 +1,4 @@
-﻿Write-Host 'Importing script Invoke-CsvCleanser'
+﻿Write-Host 'Importing script Invoke-CsvCleanser...'
 
 <#
 .SYNOPSIS
@@ -131,9 +131,15 @@ function Invoke-CsvCleanser {
 
             Write-Verbose 'Created OUTPUT StreamWriter'
 
-            Write-Verbose "Processing $File..."
+            # progress indicator
+            $Activity = "Processing $File..."
+            $Length = (Get-Item $File).Length
+            $Done=0
 
-            while(($line = $InFile.ReadLine()) -ne $null) {
+            While (($line = $InFile.ReadLine()) -ne $null) {
+
+                $Done += $Line.Length
+                Write-Progress -Activity $Activity -Status ("{0:p1} Complete:" -f ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
 
                 Write-Debug "Raw: $line"
 
@@ -161,7 +167,6 @@ function Invoke-CsvCleanser {
             } # While
 
             Write-Verbose "Finished processing file: $($_.FullName)"
-            # Write-Verbose "Processed file is saved as: $($OutFile.BaseStream.Name)"
 
             # Close open files and cleanup objects
             $OutFile.Flush()
