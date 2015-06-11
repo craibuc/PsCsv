@@ -31,18 +31,19 @@ function Invoke-CsvCleanser {
     [CmdletBinding()]
     Param
     (
-        [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName = $true)][Alias('FullName','Path','f')]
+        [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName = $true)]
+        [Alias('FullName','f')]
         <#
         [ValidateScript({
-            if(!(Test-Path -LiteralPath $_ -PathType Container))
+            if(!(Test-Path -LiteralPath $_ -PathType Leaf))
             {
-                throw "Input folder doesn't exist: $_"
+                throw "File doesn't exist: $_"
             }
             $true
         })]
         #>
         [ValidateNotNullOrEmpty()]
-        [string[]]$Files, # = (Get-Location -PSProvider FileSystem).Path,
+        [string[]]$Files,
 
         <#
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -64,7 +65,8 @@ function Invoke-CsvCleanser {
         [string]$OutPath,
         #>
 
-        [Parameter(ValueFromPipelineByPropertyName = $true)][Alias('e')]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [Alias('e')]
         [string]$Encoding = 'Default',
 
         [switch][Alias('n')]$Nulls,
@@ -112,9 +114,11 @@ function Invoke-CsvCleanser {
 
         Foreach ($File In $Files) {
 
+            $Item = (Get-Item $File)
+
             $InFile = New-Object -TypeName System.IO.StreamReader -ArgumentList (
                 #$_.FullName,
-                $File,
+                $Item.FullName,
                 $FileEncoding
             ) -ErrorAction Stop
 
@@ -132,14 +136,14 @@ function Invoke-CsvCleanser {
             Write-Verbose 'Created OUTPUT StreamWriter'
 
             # progress indicator
-            $Activity = "Processing $File..."
-            $Length = (Get-Item $File).Length
+            $Activity = "Processing $Item..."
+            $Length = $Item.Length
             $Done=0
 
             While (($line = $InFile.ReadLine()) -ne $null) {
 
                 $Done += $Line.Length
-                Write-Progress -Activity $Activity -Status ("{0:p1} Complete:" -f ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
+                Write-Progress -Activity $Activity -Status ("{0:p0} Complete:" -f ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
 
                 Write-Debug "Raw: $line"
 
@@ -166,7 +170,7 @@ function Invoke-CsvCleanser {
 
             } # While
 
-            Write-Verbose "Finished processing file: $($_.FullName)"
+            Write-Verbose "Finished processing: $Item"
 
             # Close open files and cleanup objects
             $OutFile.Flush()
@@ -177,7 +181,7 @@ function Invoke-CsvCleanser {
             $InFile.Dispose()
 
             # move and replace
-            Move-Item $tempFile $File -Force
+            Move-Item $tempFile $Item.FullName -Force
 
         } # Foreach
 
