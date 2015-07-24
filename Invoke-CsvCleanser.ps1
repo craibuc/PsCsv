@@ -93,10 +93,10 @@ function Invoke-CsvCleanser {
             }
         }
 
-        Write-Verbose "Encoding: $FileEncoding"
-        Write-Verbose "Nulls: $Nulls"
-        Write-Verbose "Milliseconds: $Milliseconds"
-        Write-Verbose "DoubleQuotes: $DoubleQuotes"
+        Write-Debug "Encoding: $FileEncoding"
+        Write-Debug "Nulls: $Nulls"
+        Write-Debug "Milliseconds: $Milliseconds"
+        Write-Debug "DoubleQuotes: $DoubleQuotes"
 
         $DQuotes = '"'
         $Separator = ','
@@ -114,6 +114,8 @@ function Invoke-CsvCleanser {
 
         Foreach ($File In $Files) {
 
+            [DateTime] $started = Get-Date
+
             $Item = (Get-Item $File)
 
             $InFile = New-Object -TypeName System.IO.StreamReader -ArgumentList (
@@ -122,7 +124,7 @@ function Invoke-CsvCleanser {
                 $FileEncoding
             ) -ErrorAction Stop
 
-            Write-Verbose 'Created INPUT StreamReader'
+            Write-Debug 'Created INPUT StreamReader'
 
             $tempFile = "$env:temp\TEMP-$(Get-Date -format 'yyyy-MM-dd hh-mm-ss').csv"
             # $tempFile = (Join-Path -Path $OutPath -ChildPath $_.Name)
@@ -133,15 +135,17 @@ function Invoke-CsvCleanser {
                 $FileEncoding
             ) -ErrorAction Stop
 
-            Write-Verbose 'Created OUTPUT StreamWriter'
+            Write-Debug 'Created OUTPUT StreamWriter'
 
             # progress indicator
             $Activity = "Processing $Item..."
             $Length = $Item.Length
             $Done=0
+            $rows=0
 
             While (($line = $InFile.ReadLine()) -ne $null) {
 
+                $rows += 1
                 $Done += $Line.Length
                 Write-Progress -Activity $Activity -Status ("{0:p0} Complete:" -f ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
 
@@ -170,7 +174,12 @@ function Invoke-CsvCleanser {
 
             } # While
 
-            Write-Verbose "Finished processing: $Item"
+            [DateTime] $ended = Get-Date
+
+            $item.Length
+            [TimeSpan] $duration = $ended - $started
+
+            Write-Host ("Processed {0} ({1:N0} bytes; {2:N0} rows) in {3}" -f $Item, $Item.Length, $rows, $duration)
 
             # Close open files and cleanup objects
             $OutFile.Flush()

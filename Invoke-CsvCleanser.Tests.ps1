@@ -14,7 +14,7 @@ Describe "Invoke-CsvCleanser" {
         Set-Content $0000 -Value $content
 
         # act
-        Invoke-CsvCleanser $0000 -Nulls
+        Invoke-CsvCleanser $0000 -Nulls -Verbose
 
         # assert
         $actual = (Get-Content $0000) -join $nl
@@ -30,7 +30,7 @@ Describe "Invoke-CsvCleanser" {
         Set-Content $0001 -Value $content
 
         # act
-        Invoke-CsvCleanser $0001 -Milliseconds
+        Invoke-CsvCleanser $0001 -Milliseconds -Verbose
 
         # assert
         $actual = (Get-Content $0001) -join $nl
@@ -46,7 +46,7 @@ Describe "Invoke-CsvCleanser" {
         Set-Content $0002 -Value $content
 
         # act
-        Invoke-CsvCleanser $0002 -DoubleQuotes
+        Invoke-CsvCleanser $0002 -DoubleQuotes -Verbose
 
         # assert
         $actual = (Get-Content $0002) -join $nl
