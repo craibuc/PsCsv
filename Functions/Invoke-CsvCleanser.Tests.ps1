@@ -4,64 +4,69 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 
 Describe "Invoke-CsvCleanser" {
 
-    $nl = [Environment]::NewLine
-    $content = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
+    Context "Operations" {
 
-    It "Should remove all instances of the word 'NULL'" {
+        $nl = [Environment]::NewLine
+        $content = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
 
-        # arrange
-        $0000 = New-item "TestDrive:\0000.csv" -Type File
-        Set-Content $0000 -Value $content
+        It "Should remove all instances of the word 'NULL'" {
 
-        # act
-        Invoke-CsvCleanser $0000 -Nulls -Verbose
+            # arrange
+            $0000 = New-item "TestDrive:\0000.csv" -Type File
+            Set-Content $0000 -Value $content
 
-        # assert
-        $actual = (Get-Content $0000) -join $nl
-        $expected = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + ',,'
+            # act
+            Invoke-CsvCleanser $0000 -Nulls # -Verbose
 
-        $actual | Should Be $expected
-    }
+            # assert
+            $actual = (Get-Content $0000) -join $nl
+            $expected = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + ',,'
 
-    It "Should remove milliseconds from all datetimes" {
+            $actual | Should Be $expected
+        }
 
-        # arrange
-        $0001 = New-item "TestDrive:\0001.csv" -Type File
-        Set-Content $0001 -Value $content
+        It "Should remove milliseconds from all datetimes" {
 
-        # act
-        Invoke-CsvCleanser $0001 -Milliseconds -Verbose
+            # arrange
+            $0001 = New-item "TestDrive:\0001.csv" -Type File
+            Set-Content $0001 -Value $content
 
-        # assert
-        $actual = (Get-Content $0001) -join $nl
-        $expected = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
+            # act
+            Invoke-CsvCleanser $0001 -Milliseconds # -Verbose
 
-        $actual | Should Be $expected
-    }
+            # assert
+            $actual = (Get-Content $0001) -join $nl
+            $expected = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
 
-    It "Should remove double quotes" {
+            $actual | Should Be $expected
+        }
 
-        # arrange
-        $0002 = New-item "TestDrive:\0002.csv" -Type File
-        Set-Content $0002 -Value $content
+        It "Should remove double quotes" {
 
-        # act
-        Invoke-CsvCleanser $0002 -DoubleQuotes -Verbose
+            # arrange
+            $0002 = New-item "TestDrive:\0002.csv" -Type File
+            Set-Content $0002 -Value $content
 
-        # assert
-        $actual = (Get-Content $0002) -join $nl
-        $expected = 'DATE_COLUMN,DATETIME_COLUMN,TEXT_COLUMN' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
+            # act
+            Invoke-CsvCleanser $0002 -DoubleQuotes # -Verbose
 
-        $actual | Should Be $expected
+            # assert
+            $actual = (Get-Content $0002) -join $nl
+            $expected = 'DATE_COLUMN,DATETIME_COLUMN,TEXT_COLUMN' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
 
-    }
+            $actual | Should Be $expected
 
-}
+        }
 
-Describe "Aliases" {
+    } # Operations
+    
 
-    It "Invoke-CsvCleanser alias should exist" {
-        (Get-Alias -Definition Invoke-CsvCleanser).name | Should Be "icc"
-    }
+    Context "Alias" {
 
-}
+        It "Should define an alias" {
+            (Get-Alias -Definition Invoke-CsvCleanser).name | Should Be "icc"
+        }
+
+    } # Alias
+
+} # Describe
