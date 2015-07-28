@@ -1,4 +1,6 @@
-# Invoke-CsvCleanser
+# PsCsv
+
+## Invoke-CsvCleanser
 Use PowerShell to remove unwanted characters from a CSV file.
 
 SQL Server Management Studio (SSMS) 2012 adds the following to CSV files created by its `Save Results As...` feature:
@@ -12,3 +14,7 @@ Issues:
 
 - including the word 'NULL' inflates the size of the CSV file
 - Excel doesn't automatically recognize a value like `2015-07-24 00:00:00.0000` as a `datetime`, so formatting isn't applied correctly.
+
+## Remove-Columns
+
+TODO
