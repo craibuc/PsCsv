@@ -71,11 +71,16 @@ function Invoke-CsvCleanser {
 
         [switch][Alias('m')]$Milliseconds,
 
-        [switch][Alias('q')]$DoubleQuotes
+        [switch][Alias('q')]$DoubleQuotes,
+
+        [switch][Alias('a')]$Alert,
+
+        [switch]$PassThru
+
     )
 
     BEGIN {
-        Write-Verbose "$($MyInvocation.MyCommand.Name)::Begin"
+        Write-Debug "$($MyInvocation.MyCommand.Name)::Begin"
 
         # Set default encoding
         if($Encoding -eq 'Default') {
@@ -95,6 +100,8 @@ function Invoke-CsvCleanser {
         Write-Debug "Nulls: $Nulls"
         Write-Debug "Milliseconds: $Milliseconds"
         Write-Debug "DoubleQuotes: $DoubleQuotes"
+        Write-Debug "Alert: $Alert"
+        Write-Debug "PassThru: $PassThru"
 
         $DQuotes = '"'
         $Separator = ','
@@ -108,7 +115,7 @@ function Invoke-CsvCleanser {
     } # BEGIN
 
   PROCESS {
-        Write-Verbose "$($MyInvocation.MyCommand.Name)::Process"
+        Write-Debug "$($MyInvocation.MyCommand.Name)::Process"
 
         Foreach ($File In $Files) {
 
@@ -172,12 +179,10 @@ function Invoke-CsvCleanser {
 
             } # While
 
-            [DateTime] $ended = Get-Date
+            # [DateTime] $ended = Get-Date
+            [TimeSpan] $duration = (Get-Date) - $started
 
-            $item.Length
-            [TimeSpan] $duration = $ended - $started
-
-            Write-Host ("Processed {0} ({1:N0} bytes; {2:N0} rows) in {3}" -f $Item, $Item.Length, $rows, $duration)
+            Write-Verbose ("Processed {0} ({1:N0} bytes; {2:N0} rows) in {3}" -f $Item, $Item.Length, $rows, $duration)
 
             # Close open files and cleanup objects
             $OutFile.Flush()
@@ -190,11 +195,14 @@ function Invoke-CsvCleanser {
             # move and replace
             Move-Item $tempFile $Item.FullName -Force
 
+            If ($PassThru) { Write-Output (Get-Item $File) }
+            If ($Alert) { [System.Media.SystemSounds]::Beep.Play() }
+
         } # Foreach
 
     } # PROCESS
 
-    END { Write-Verbose "$($MyInvocation.MyCommand.Name)::End"}
+    END { Write-Debug "$($MyInvocation.MyCommand.Name)::End"}
 
 }
 
