@@ -17,6 +17,12 @@ Remove milliseconds from datetime values.  2015-12-13 23:32:59.000 --> 2015-12-1
 .PARAMETER DoubleQuotes
 Remove double quotes (") from the file.
 
+.PARAMETER Alert
+Play the [System.Media.SystemSounds]::Beep at the conclusion of each item processed.
+
+.PARAMETER PassThru
+Add a System.IO.FileInfo object to the pipeline for each item processed.
+
 .EXAMPLE
 PS> Invoke-CsvCleanser 'path\to\file.csv' -Nulls -Milliseconds
 
@@ -152,7 +158,7 @@ function Invoke-CsvCleanser {
 
                 $rows += 1
                 $Done += $Line.Length
-                Write-Progress -Activity $Activity -Status ("{0:p0} Complete:" -f ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
+                Write-Progress -Activity $Activity -Status ("{0:N0} of {1:N0} ({2:p0})" -f $Done, $Length, ($Done/$Length)) -PercentComplete (($Done/$Length) * 100)
 
                 Write-Debug "Raw: $line"
 
