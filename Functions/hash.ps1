@@ -1,0 +1,29 @@
+$ht=@{
+    Rows=100;
+    COL_A=@{
+        Foo=[int]; 
+        Measurements=@{
+            Minimum=0;
+            Maximum=100;
+            Unique=@(@{''=10},@{100=5},@{50=9},@{0=1})
+        }
+    };
+    COL_B=@{
+        Foo=[string];
+        Measurements=@{
+            Minimum='A';
+            Maximum='Z';
+            Unique=@(@{''=100},@{'A'=50},@{'B'=9},@{'Z'=1})
+        }
+    };
+    COL_C=@{
+        Foo=[datetime];
+        Measurements=@{
+            Minimum='03/29/00';
+            Maximum='10/10/00';
+            Unique=@([pscustomobject]@{Value='03/29/00';Records=9},[pscustomobject]@{Value='10/10/00';Records=1})
+        }
+    }
+}
+
+$ht.COL_C.Measurements.unique #| export-csv '.\ggg.csv' -NoTypeInformation
