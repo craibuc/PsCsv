@@ -92,9 +92,11 @@ PS> Invoke-CsvDistiller path\to\csv\file.csv -Include 'COL_A','COL_B','COL_C' -E
 
 ### Remove-CsvColumns
 
-Not implemented yet.
+Use PowerShell to remove unwanted columns from a CSV file.
 
 #### Motivation
+
+Needed a quick way to remove [protected-health information (PHI)](https://en.wikipedia.org/wiki/Protected_health_information) from a CSV file to distributed to others.
 
 #### Usage
 
@@ -103,7 +105,7 @@ Not implemented yet.
 PS> Import-Module PsCsv -Force
 
 # excute the script
-PS> Remove-CsvColumns path\to\csv\file.csv 'COL_A','COL_B','COL_C'
+PS> Remove-CsvColumns path\to\csv\file.csv -Exclude 'COL_A','COL_B','COL_C'
 ```
 
 ## Contributing
