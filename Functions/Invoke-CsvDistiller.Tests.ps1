@@ -1,11 +1,11 @@
-﻿# $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-# $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
-# . "$here\$sut"
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
+. "$here\$sut"
 # $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-Import-Module PsCsvDistiller -Force
+# Import-Module PsCsvDistiller -Force
 
-Describe "Invoke-CsvDistiller" {
+Describe -tag 'distiller' "Invoke-CsvDistiller" {
 
     # arrange
     $nl = [Environment]::NewLine
@@ -27,13 +27,13 @@ NULL,NULL,NULL
       #arrange
       $expected=@"
 DATE_FIELD,STRING_FIELD,RECORDS
-3/1/2015,BB,1
 5/1/2015,BB,3
 NULL,NULL,1
+3/1/2015,BB,1
 "@
 
       # act
-      $actual = Distill -p $CSV -Include 'DATE_FIELD','STRING_FIELD' -Verbose
+      $actual = (Invoke-CsvDistiller -p $CSV -Include 'DATE_FIELD','STRING_FIELD' -Verbose) -Join "`n"
 
       It "Should return the correct unique values" {
         # assert
@@ -47,13 +47,13 @@ NULL,NULL,1
       #arrange
       $expected=@"
 DATE_FIELD,STRING_FIELD,RECORDS
-3/1/2015,BB,1
 5/1/2015,BB,3
 NULL,NULL,1
+3/1/2015,BB,1
 "@
 
       # act
-      $actual = Distill -p $CSV -Exclude 'NUMERIC_FIELD' -Verbose
+      $actual = (Invoke-CsvDistiller -p $CSV -Exclude 'NUMERIC_FIELD' -Verbose) -Join "`n"
 
       It "Should return the correct unique values" {
         # assert

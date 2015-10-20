@@ -127,14 +127,5 @@ Describe "Invoke-CsvCleanser" {
         }
 
     } # Operations
-    
-
-    Context "Alias" {
-
-        It "Should define an alias" {
-            (Get-Alias -Definition Invoke-CsvCleanser).name | Should Be "icc"
-        }
-
-    } # Alias
 
 } # Describe

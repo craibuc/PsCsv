@@ -38,7 +38,7 @@ Function Invoke-CsvDistiller {
     BEGIN {
 
         # get list of fields from file if none are specified
-        if ( -not $Included ) { $Included = Get-Fields -Path $Path }
+        if ( -not $Included ) { $Included = Get-CsvColumns -Path $Path }
 
         # remove excluded fields
         $Included = $Included | Where-Object { $Excluded -NotContains $_ }

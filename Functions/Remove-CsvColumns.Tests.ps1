@@ -9,7 +9,7 @@ Describe "Remove-CsvColumns" {
       $nl = [Environment]::NewLine
       $content = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
 
-      It "Should remove a column by name" {
+      It -skip "Should remove a column by name" {
 
           # arrange
           $0000 = New-item "TestDrive:\0000.csv" -Type File
@@ -26,14 +26,6 @@ Describe "Remove-CsvColumns" {
       }
 
   } # Operations
-
-  Context "Alias" {
-
-    It "Should define an alias" {
-        (Get-Alias -Definition Remove-CsvColumns).name | Should Be "rcc"
-    }
-
-  } # Alias
 
 } # Describe
 
