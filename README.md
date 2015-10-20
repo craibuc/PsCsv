@@ -12,7 +12,30 @@ PowerShell module to perform various tasks on a CSV file.
 
 ## Installation
 
--	Install dependencies
+### Dependencies
+#### PowerShell
+
+- https://www.microsoft.com/en-us/download/details.aspx?id=34595
+- execute `PS> Set-ExecutionPolicy RemoteSigned –Scope CurrentUser`
+
+#### Logparser
+
+- Install [Microsoft’s logparser](https://technet.microsoft.com/en-us/scriptcenter/dd919274.aspx) 
+- Add 'C:\Program Files (x86)\Log Parser 2.2' to your system's `Path` environment variable
+
+#### Ruby
+
+- Install [Ruby for Windows](http://rubyinstaller.org/)
+
+#### AsciiDoctor
+
+From within the Ruby shell:
+
+ - `$ gem install asciidoctor`
+ - `$ gem install coderay`
+ 
+### Module
+
 -	Download https://github.com/craibuc/PsCsv/archive/master.zip; extract contents
 -	Rename folder from `PsCsv-master` to `PsCsv`
 -	Move folder to your PowerShell `Modules` folder (C:\Users\<user> \Documents\WindowsPowerShell\Modules)
