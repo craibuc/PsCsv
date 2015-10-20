@@ -1,25 +1,60 @@
-﻿function Remove-CsvColumns {
+﻿<#
+.SYNOPSIS
+Removes selected columns from a CSV file.
+
+.PARAMETER Path
+The CSV file to be processed.
+
+.PARAMETER Excluded
+Array of columns to be removed from the CSV file.
+
+.PARAMETER PassThru
+Return a FileSystemInfo object that represents the Cmdlet's results; default: $false.
+
+.EXAMPLE
+PS> Remove-CsvColumns -p path\to\file.csv -e 'COLUMN_0','COLUMN_1'
+
+#>
+function Remove-CsvColumns {
 
     [CmdletBinding()]
     Param
     (
-        [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName = $true)]
-        [Alias('FullName','f')]
-        [ValidateNotNullOrEmpty()]
-        [string[]]$Files,
+        # [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName = $true)]
+        # [Alias('FullName','f')]
+        # [ValidateNotNullOrEmpty()]
+        # [string[]]$Files,
+        [Parameter(Mandatory=$True,Position=1)]
+        [alias('p')]
+        [String] $Path,
 
-        #[Parameter(ValueFromPipelineByPropertyName = $true)]
-        [Alias('c')]
-        [string[]]$Columns
+        [Parameter(Mandatory=$False,Position=2)]
+        [alias('e')]
+        [String[]] $Excluded,
 
         # [Parameter(ValueFromPipelineByPropertyName = $true)]
         # [Alias('e')]
         # [string]$Encoding = 'Default'
 
+        [switch]$PassThru
+
     )
 
     BEGIN {
-        Write-Verbose "$($MyInvocation.MyCommand.Name)::Begin"
+        Write-Debug "$($MyInvocation.MyCommand.Name)::Begin"
+
+        # get list of fields from file if none are specified
+        $Included = Get-CsvColumns -Path $Path
+
+        # remove excluded fields
+        $Included = $Included | Where-Object { $Excluded -NotContains $_ }
+
+$QueryTemplate=@"
+SELECT  $( $Included -Join ',')
+INTO    '{1}'
+FROM    '{0}'
+"@
+        Write-Debug $QueryTemplate
 
         # # Set default encoding
         # if($Encoding -eq 'Default') {
@@ -40,51 +75,19 @@
     }
 
     PROCESS {
-      Write-Verbose "$($MyInvocation.MyCommand.Name)::Process"
+        Write-Debug "$($MyInvocation.MyCommand.Name)::Process"
 
-      Foreach ($File In $Files) {
+        $Query = ($QueryTemplate -f $Path, $Path)
+        Write-Verbose $Query
 
-        [DateTime] $started = Get-Date
+        & logparser $Query -stats:off -o:csv
 
-        $Item = (Get-Item $File)
-
-        $tempFile = "$env:temp\TEMP-$(Get-Date -format 'yyyy-MM-dd hh-mm-ss').csv"
-
-        $OutFile = New-Object -TypeName System.IO.StreamWriter -ArgumentList (
-            $tempFile,
-            $false,
-            $FileEncoding
-        ) -ErrorAction Stop
-
-        # progress indicator
-        #$Activity = "Processing $Item..."
-        #$Length = $Item.Length
-
-        # export
-        Import-Csv $File | SELECT * -ExcludeProperty ($Columns -Join ',') | `
-          Convertto-Csv -notypeinformation
-        # Export-csv $tempFile -NoTypeInformation
-
-        # move and replace
-        Move-Item $tempFile $Item.FullName -Force
-
-        # [DateTime] $ended = Get-Date
-
-        $item.Length
-        [TimeSpan] $duration = (Get-Date) - $started
-
-        Write-Host ("Processed {0} ({1:N0} bytes) in {2}" -f $Item, $Item.Length, $duration)
-
-        # Close open files and cleanup objects
-        $OutFile.Flush()
-        $OutFile.Close()
-        $OutFile.Dispose()
-
-      } # Foreach
+        # return a reference to the ADoc that was created
+        If ($PassThru) { Write-Output (Get-Item $File) }
 
     } # PROCESS
 
-    END { Write-Verbose "$($MyInvocation.MyCommand.Name)::End"}
+    END { Write-Debug "$($MyInvocation.MyCommand.Name)::End" }
 
 }
 

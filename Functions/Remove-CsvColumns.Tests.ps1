@@ -2,26 +2,35 @@
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
-Describe "Remove-CsvColumns" {
+Describe -tag 'remove' "Remove-CsvColumns" {
 
-  Context "Operations" {
+$content = @"
+DATE_COLUMN,DATETIME_COLUMN,TEXT_COLUMN,NUMERIC_COLUMN
+2015-05-01,2015-05-01 23:00:00,'LOREM IPSUM 0',0
+2015-05-02,2015-05-02 23:00:00,'LOREM IPSUM 1',1
+2015-05-03,2015-05-03 23:00:00,'LOREM IPSUM 2',2
+"@
 
-      $nl = [Environment]::NewLine
-      $content = '"DATE_COLUMN","DATETIME_COLUMN","TEXT_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000,LOREM IPSUM' + $nl + 'NULL,null,nuLL'
+  Context "Mulitple columns specified" {
 
-      It -skip "Should remove a column by name" {
+      # arrange
+      $CSV = New-item "TestDrive:\data.csv" -Type File
+      Set-Content $CSV -Value $content
 
-          # arrange
-          $0000 = New-item "TestDrive:\0000.csv" -Type File
-          Set-Content $0000 -Value $content
+$expected = @"
+DATETIME_COLUMN,NUMERIC_COLUMN
+2015-05-01 23:00:00,0
+2015-05-02 23:00:00,1
+2015-05-03 23:00:00,2
+"@
+
+      It "Should produce a file with the expected column of data" {
 
           # act
-          Remove-CsvColumns $0000 'TEXT_COLUMN'
+          Remove-CsvColumns $CSV 'TEXT_COLUMN','DATE_COLUMN' -Verbose
 
           # assert
-          $actual = (Get-Content $0000) -join $nl
-          $expected = '"DATE_COLUMN","DATETIME_COLUMN"' + $nl + '2015-05-01,2015-05-01 23:00:00.000' + $nl + ','
-
+          $actual = (Get-Content $CSV) -join "`n"
           $actual | Should Be $expected
       }
 
