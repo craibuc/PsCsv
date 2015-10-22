@@ -19,39 +19,48 @@ NUMERIC_FIELD,DATE_FIELD,STRING_FIELD
 
   Context "When a date field is supplied" {
 
+    # arrange
+    $Column = [PsCustomObject]@{'Name'='DATE_FIELD';'Scalars'=@();'Sets'=@()}
+
     # act
-    $actual = Range -p $CSV -f 'DATE_FIELD' -Verbose
+    $Column | Range -File $CSV 
 
     It "Calculates the minimum and maximum values" {
       # assert
-      $actual[0].values.minimum | Should Be '3/1/2015'
-      $actual[0].values.maximum | Should Be '5/1/2015'
+      $Column.Scalars[0].Value | Should Be '3/1/2015'
+      $Column.Scalars[1].Value | Should Be '5/1/2015'
     }
 
   }
 
   Context "When a numeric field is supplied" {
 
+    # arrange
+    $Column = [PsCustomObject]@{'Name'='NUMERIC_FIELD';'Scalars'=@();'Sets'=@()}
+
     # act
-    $actual = Range -p $CSV -f 'NUMERIC_FIELD' -Verbose
+    $Column | Range -File $CSV 
 
     It "Calculates the minimum and maximum values" {
       # assert
-      $actual[0].values.minimum | Should Be '1'
-      $actual[0].values.maximum | Should Be '4'
+      $Column.Scalars[0].Value | Should Be '1'
+      $Column.Scalars[1].Value | Should Be '4'
     }
 
   }
 
   Context "When a string field is supplied" {
 
+    # arrange
+    $Column = [PsCustomObject]@{'Name'='STRING_FIELD';'Scalars'=@();'Sets'=@()}
+
     # act
-    $actual = Range -p $CSV -f 'STRING_FIELD' -Verbose
+    $Column | Range -File $CSV 
 
     It "Calculates the minimum and maximum values" {
       # assert
-      $actual[0].values.minimum | Should Be 'AA'
-      $actual[0].values.maximum | Should Be 'DD'
+      $Column.Scalars[0].Value | Should Be 'AA'
+      $Column.Scalars[1].Value | Should Be 'DD'
     }
 
   }
