@@ -5,20 +5,45 @@ Produce a statistical analysis of a CSV file.
 .DESCRIPTION
 TODO
 
-.PARAMETER Source
+.PARAMETER File
 The CSV file to be processed.
 
-.PARAMETER Destination
-The directory to contain the results of the processing.  Default: the current directory ('.').
+.PARAMETER Included
+String array of columns to be included from processing.  If not specified, all columns are included.
 
-.PARAMETER Delimiter
-The CSV file's delimiter; default: "," (comma)
+.PARAMETER Excluded
+String array of columns to be excluded from processing.  If not specified, no columns are excluded.
 
-.PARAMETER PassThru
-Return a FileSystemInfo object that represents the Cmdlet's results; default: $false.
+.PARAMETER Range
+Calculates the minimum and maximum value for each of the CSV's columns; default: $false.
+
+.PARAMETER Top
+Performs a Top N query on each of the CSV's columns (-1 performs the calculation for every value in the column); default: $false.
 
 .EXAMPLE
-Invoke-CsvAnalyzer C:\Users\<user>\export.csv
+Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range
+
+Calculate minimum and maximum values for every column.
+
+.EXAMPLE
+Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Include 'COL_A','COL_B' -Range
+
+Calculate minimum and maximum values for columns COL_A and COL_B only.
+
+.EXAMPLE
+Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Exclude 'COL_C','COL_D' -Range
+
+Calculate minimum and maximum values for all columns, excluding COL_C and COL_D.
+
+.EXAMPLE
+Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range -Top 5
+
+Calculates the Top 5 values for all columns.
+
+.EXAMPLE
+Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range -Top -1
+
+Calculates the minimum, maximum, and Top all values for all columns.
 
 #>
 function Invoke-CsvAnalyzer {
@@ -26,126 +51,54 @@ function Invoke-CsvAnalyzer {
     [CmdletBinding()]
     PARAM(
         [Parameter(Mandatory=$True,Position=1)]
-        [Alias('s')]
-        [String[]] $Source,
+        [alias('f')]
+        [String]
+        $File,
 
         [Parameter(Mandatory=$False,Position=2)]
-        [Alias('d')]
-        [String] $Destination='.',
+        [alias('i')]
+        [String[]]
+        $Included,
 
-        [Parameter(Mandatory=$False)]
-        [String] $Delimiter=",",
+        [Parameter(Mandatory=$False,Position=3)]
+        [alias('e')]
+        [String[]]
+        $Excluded,
 
-        [Switch] $PassThru
+        [Switch] $Range,
+        [int] $Top
     )
 
     BEGIN {
-      # Write-Verbose "Path: $Source"
-
-      $DocumentTemplate=@"
-= {0}
-:description: data analysis
-:author: {1}
-:revdate: {2}
-:icons: font
-:toc:
-:toclevels: 3
-:toc-placement: left
-:source-highlighter: coderay
-:data-uri:
-:experimental:
-
-== Fields
-"@
-
-      $IncludeTemplate=@"
-[format="csv",options="header"]
-|===================================================
-include::{0}[]
-|===================================================
-
-"@
-
-      $QueryTemplate=@"
-SELECT  [{0}] AS VALUE, COUNT(1) AS RECORDS
-INTO    '{1}'
-FROM    {2}
-GROUP BY [{0}]
-ORDER BY count(1) DESC
-"@
-
+      Write-Debug "File: $File"
+      Write-Debug "Included: $Included"
+      Write-Debug "Excluded: $Excluded"
+      Write-Debug "Range: $Range"
+      Write-Debug "Top: $Top"
     }
     PROCESS {
 
-        $SourceItem = Get-Item $Source
-        Write-Verbose "Source: $SourceItem"
+      # get list of fields from file if none are specified
+      if (-not $Included) {
+          $Included = (Get-Content $File | Select-Object -First 1).Split(',')
+      }
 
-        # create destination directory if !exists
-        if (!(Test-Path $Destination)) {
-           New-Item -ErrorAction Ignore -ItemType Directory -Path $Destination
-        }
-        $DestinationItem = Get-Item $Destination
-        Write-Debug "Destination: $DestinationItem"
+      # remove excluded fields
+      $Included = $Included | Where-Object { $Excluded -NotContains $_ }
 
-        $SourcePath = $SourceItem.Directory.Name #Split-Path $Source -Resolve
-        Write-Debug "SourcePath: $SourcePath"
+      $Included | ForEach-Object {
 
-        $SourceFile = $SourceItem.Name #Split-Path $Source -Resolve -Leaf
-        Write-Debug "SourceFile: $SourceFile"
+          Write-Verbose $_
 
-        $ADoc = (Split-Path $Source -Resolve -Leaf) -Replace '.csv', '.adoc'
-        Write-Debug "ADoc: $ADoc"
+          # create a hash that represents each column; initialize values
+          $Column = [PsCustomObject]@{'Name'=$_;'Scalars'=@();'Sets'=@()}
 
-        $File = (Join-Path -Path $DestinationItem -ChildPath $ADoc)
+          if ($Range) { $Column | Range -File $File }
+          if ($Top) { $Column | Top -File $File -N $Top }
+          # add to pipeline
+          $Column
 
-        # 
-        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList (
-            $File,
-            $False,
-            [System.Text.Encoding]::Default
-        ) -ErrorAction Stop
-
-        # replace document template variables ({}) with actual values
-        $Document = ($DocumentTemplate -f $SourceFile, ([System.security.principal.Windowsidentity]::Getcurrent().name), (Get-Date))
-        $StreamWriter.WriteLine($Document)
-
-        $Columns = (Get-Content $Source | Select-Object -First 1).Split($Delimiter)
-        $Columns | % {
-              Write-Debug $_
-              $StreamWriter.WriteLine("=== $_")
-
-              # remove spaces and illegal characters from file name
-              $SafeFileName = Invoke-Sanitizer -Value $_ -Spaces -Illegals
-              #Write-Verbose $SafeFileName
-
-              # $Query = ($QueryTemplate -f $_, ".\csv\$_.csv", $Source)
-              $Query = ($QueryTemplate -f $_, "$Destination\csv\$SafeFileName.csv", $SourceItem.FullName)
-              Write-Debug $Query
-              & LogParser $Query
-
-              # $Include = ($IncludeTemplate -f $_)
-              $Include = ($IncludeTemplate -f ".\csv\$SafeFileName.csv")
-
-              #Write-Verbose $Include
-              $StreamWriter.WriteLine($Include)
-
-        }
-
-        # Close open files and cleanup objects
-        $StreamWriter.Flush()
-        $StreamWriter.Close()
-        $StreamWriter.Dispose()
-
-        # begin foreach loop
-        # Get-ChildItem $evtxfolder -Filter *.evtx | `
-        # Foreach-Object {
-        # $LPARGS = ("-i:evt", "-o:syslog", "SELECT STRCAT(`' evt-Time: `', TO_STRING(TimeGenerated, `'dd/MM/yyyy, hh:mm:ss`')),EventID,SourceName,ComputerName,Message INTO $SERVER FROM $CURRENTOBJECT") #obviously, this won't work.
-
-        # $LP = Start-Process -FilePath $LOGPARSER -ArgumentList $LPARGS -Wait -Passthru -NoNewWindow
-        # $LP.WaitForExit() # wait for logs to finish
-
-        # return a reference to the ADoc that was created
-        If ($PassThru) { Write-Output (Get-Item $File) }
+      }
     }
     END {}
 
