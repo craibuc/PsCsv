@@ -42,6 +42,26 @@ From within the Ruby shell:
 
 ## Cmdlets
 
+### ConvertTo-AsciiDoc
+
+Converts the results of `Invoke-CsvAnalyzer` Cmdlet to an AsciiDoc document.
+
+#### Motivation
+
+I needed a nice way to display the results of the `Invoke-CsvAnalyzer` Cmdlet.
+
+#### Usage
+
+```powershell
+# import the module
+PS> Import-Module PsCsv -Force
+
+# Calculate minimum and maximum values for every column, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
+
+# assuming that AsciiDoctor is installed, convert document to HTML 
+PS> asciidoctor export.adoc
+
 ### Invoke-CsvAnalyzer
 
 Generates an HTML report of all the CSV file's columns and .
@@ -51,7 +71,9 @@ I was researching ways to ‘cleanse’ my CSV files of NULLs and milliseconds s
 
 While I decided to write my own script to handle this, I stumbled upon Microsoft’s logparser.  It (both command line and DLL interfaces) was built to query large web logs, using a SQL-like syntax; I figured that I could use it for my purposes.
 
-`Invoke-CsvAnalyzer` uses the logparser to repeatedly run a `SELECT DISTINCT` query for each column header in the CSV file.  The results of the queries, CSV files themselves, are referenced in a template file (in AsciiDoc fomat).  An AsciiDoc processor is used to generate the summary (HTML) document.
+`Invoke-CsvAnalyzer` generates a PsCustomObject that represents each column header in the CSV file.  Each column object is added to the pipeline, where it is passed one or more filters for processing.
+
+Each filter makes use of the logparser to run a query for each column object in the pipefile.  The results of the queries are add to the column object's measurement collections.
 
 #### Usage
 
@@ -59,8 +81,20 @@ While I decided to write my own script to handle this, I stumbled upon Microsoft
 # import the module
 PS> Import-Module PsCsv -Force
 
-# excute the script
-PS> Invoke-CsvAnalyzer path\to\csv\file.csv
+# Calculate minimum and maximum values for every column, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
+
+# Calculate minimum and maximum values for columns COL_A and COL_B only, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Include 'COL_A','COL_B' -Range | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
+
+# Calculate minimum and maximum values for all columns, excluding COL_C and COL_D, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Exclude 'COL_C','COL_D' -Range | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
+
+# Calculates the Top 5 values for all columns, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range -Top 5 | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
+
+# Calculates the minimum, maximum, and Top all values for all columns, saving output in AsciiDoc syntax.
+PS> Invoke-CsvAnalyzer C:\Users\<user>\export.csv -Range -Top -1 | ConvertTo-AsciiDoc -Title export.csv | Out-File C:\Users\<user>\export.adoc -Encoding UTF8
 ```
 
 #### Enhancements
@@ -130,6 +164,17 @@ PS> Import-Module PsCsv -Force
 # excute the script
 PS> Remove-CsvColumns path\to\csv\file.csv -Exclude 'COL_A','COL_B','COL_C'
 ```
+## Filters
+
+A PowerShell `Filter` is invoked for each item in the pipeline.
+
+### Range
+
+Calculates the minimum and maximum for each column object it receives.  Invoked by using the `-Range` parameter with the `Invoke-CsvAnalyzer` Cmdlet.
+
+### Top
+
+Generates a PsCustomObject collection of Value/Records each column object it receives.  Invoked by using the `-Top <N>` parameter with the `Invoke-CsvAnalyzer` Cmdlet.  An `N` value of `-1` will generate results for all values; an `N` value > 0 will generate the `Top N` records.
 
 ## Contributing
 
