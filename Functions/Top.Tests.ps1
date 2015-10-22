@@ -2,7 +2,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
-Describe "Unique" {
+Describe "Top" {
 
 $RECORDS=@"
 NUMERIC_FIELD,DATE_FIELD,STRING_FIELD
@@ -10,42 +10,43 @@ NUMERIC_FIELD,DATE_FIELD,STRING_FIELD
 2,5/1/2015,BB
 3,5/1/2015,BB
 4,5/1/2015,DD
-,,
 "@
 
     # arrange
     $CSV = New-item "TestDrive:\data.csv" -Type File
     Set-Content $CSV -Value $RECORDS
 
-  Context "When default properties are supplied" {
+  Context "When a Top parameter > 0 is supplied" {
+
+    # arrange
+    $Column = [PsCustomObject]@{'Name'='DATE_FIELD';'Scalars'=@();'Sets'=@()}
 
     # act
-    $actual = Unique -p $CSV -f 'DATE_FIELD' -Verbose
+    $Column | Top 1 -File $CSV 
 
     It "Should return the correct unique values" {
       # assert
-      $actual.values[0].value | Should Be '5/1/2015'
-      $actual.values[2].value | Should Be '3/1/2015'
-      $actual.values[1].value | Should Be '<null>'
+      $Column.Sets[0].Value.Value | Should Be '5/1/2015'
     }
 
     It "Should return the correct counts" {
       # assert
-      $actual.values[0].records | Should Be 3
-      $actual.values[1].records | Should Be 1
-      $actual.values[2].records | Should Be 1
+      $Column.Sets[0].Value.Records | Should Be 3
     }
 
   }
 
-  Context "When the Top parameter is also supplied" {
+  Context "When the Top -1 parameter is also supplied" {
+
+    # arrange
+    $Column2 = [PsCustomObject]@{'Name'='DATE_FIELD';'Scalars'=@();'Sets'=@()}
 
     # act
-    $actual = Unique -p $CSV -f 'DATE_FIELD' -t 2 -Verbose
+    $Column2 | Top -1 -File $CSV 
 
     It "Should return the correct number of results" {
       # assert
-      $actual.values.length | Should Be 2
+      $Column2.Sets[0].Value.Length | Should Be 2
     }
 
   }
