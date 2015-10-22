@@ -3,7 +3,7 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
 Describe "FormatAs-Html" {
-    It "does something useful" {
+    It  -skip "does something useful" {
         $true | Should Be $false
     }
 }

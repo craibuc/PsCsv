@@ -2,7 +2,7 @@
 $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 . "$here\$sut"
 
-Describe "Invoke-CsvAnalyzer" {
+Describe -tag 'analyzer' "Invoke-CsvAnalyzer" {
 
     $RECORDS=@"
 NUMERIC_FIELD,DATE_FIELD,STRING_FIELD
@@ -22,11 +22,13 @@ NULL,NULL,NULL
         $Destination = Split-Path $Source -Resolve -Parent
 
         # act
-        $Adoc = Invoke-CsvAnalyzer -Source $Source -Destination $Destination -PassThru -Verbose
+        # $Adoc = Invoke-CsvAnalyzer -Source $Source -Destination $Destination -PassThru -Verbose
+        Invoke-CsvAnalyzer -File $Source -Range -Verbose
 
-        It "Should produce a summary document in AsciiDoc format" {
+        It -skip "Should produce a summary document in AsciiDoc format" {
             # assert
-            $Adoc.fullname | Should Exist
+            #$Adoc.fullname | Should Exist
+            $False | Should Be $true
         }
 
     }
